@@ -20,16 +20,22 @@ class Card (object):
     
     suits = ['SPADES', 'CLUBS', 'HEARTS', 'DIAMONDS']
 
-    def __init__(self, suit, value):
-        assert(type(value) == type(1))
-        assert(value > 0)
-        assert(value < 14)
+    def __init__(self, suit, ranknum):
+        assert(type(ranknum) == type(1))
+        assert(ranknum > 0)
+        assert(ranknum < 14)
         assert(suit.upper() in self.suits)
         self.suit = suit.lower().capitalize()
-        self.value = value
+        self.ranknum = ranknum
+        if ranknum > 9:
+            self.value = 10
+        elif ranknum == 1:
+            self.value = 11
+        else:
+            self.value = ranknum
     
     def __str__(self):
-        return(self.ranks[self.value] + ' of ' + self.suit)
+        return(self.ranks[self.ranknum] + ' of ' + self.suit)
 
 
 if (__name__ == '__main__'):

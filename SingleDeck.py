@@ -7,12 +7,15 @@ class SingleDeck (object):
 
     def __init__(self):
         self.shuffled = False
-        self.cards = []
         self.discards = []
+        self.cards = self.build_deck()
+
+    def build_deck (self):
+        deck = []
         for suit in Card.suits:
-            for value in range(1, 14):
-                c = Card(suit, value)
-                self.cards.append(c)
+            for ranknum in range(1, 14):
+                deck.append(Card(suit, ranknum))
+        return(deck)
     
     def __str__ (self):
         message = "SingleDeck: " + str(len(self.cards)) + " cards; "
