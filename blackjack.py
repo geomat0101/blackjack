@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from Bankroll import Bankroll
 from Hand import Hand
 from Shoe import Shoe
 
@@ -18,6 +19,12 @@ class BlackJack (object):
         self.dealer_hand = None
         self.dealer_hand_value = 0
         self.dealer_busted = False
+
+        self.bankrolls = []
+        for player in range(self.num_players):
+            self.bankrolls.append(Bankroll())
+            
+        # see self.play() from here
         return
     
 
@@ -33,27 +40,35 @@ class BlackJack (object):
             hand.final_value = hand_value
             
             if hand.verdict:
-                next
+                continue
     
             if self.dealer_busted:
                 if hand_value <= 21:
-                    hand.verdict = Hand.verdicts['WIN']
+                    hand.setVerdict('WIN')
             elif hand_value > 21:
-                hand.verdict = Hand.verdicts['LOSE']
+                hand.setVerdict('LOSE')
             elif hand_value > self.dealer_hand_value:
-                hand.verdict = Hand.verdicts['WIN']
+                hand.setVerdict('WIN')
             elif hand_value == self.dealer_hand_value:
-                hand.verdict = Hand.verdicts['PUSH']
+                hand.setVerdict('PUSH')
             else:
-                hand.verdict = Hand.verdicts['LOSE']
+                hand.setVerdict('LOSE')
 
         v_map = {v: k for k, v in Hand.verdicts.iteritems()}
 
         for hand in self.player_hands:
-            message = "%4s - Player %d: %s -- %d" % (v_map[hand.verdict], hand.player, ', '.join([str(x) for x in hand.cards]), hand.final_value)
+            if hand.verdict == Hand.verdicts['BLACKJACK']:
+                self.bankrolls[hand.player].blackjack(hand)
+            elif hand.verdict == Hand.verdicts['WIN']:
+                self.bankrolls[hand.player].win(hand)
+            elif hand.verdict == Hand.verdicts['PUSH']:
+                self.bankrolls[hand.player].push(hand)
+            else:
+                self.bankrolls[hand.player].lose(hand)
+
+            message = "%9s - Player %d: %s -- %d -- %s" % (v_map[hand.verdict], hand.player, ', '.join([str(x) for x in hand.cards]), hand.final_value, self.bankrolls[hand.player])
             print(message)
-            
-            
+
 
     def deal (self):
         if len(self.shoe.discards) > (3 * len(self.shoe.cards)):
@@ -64,7 +79,9 @@ class BlackJack (object):
         # new set of hands
         self.player_hands = []  
         for player in range(self.num_players):
-            self.player_hands.append(Hand(player=player))
+            hand = Hand(player=player)
+            self.bankrolls[player].bet(hand)
+            self.player_hands.append(hand)
         
         self.dealer_hand = Hand()
 
@@ -97,6 +114,7 @@ class BlackJack (object):
 
 
     def play (self):
+        # main game loop
         self.deal()
         self.process_player_hands()
 
@@ -112,12 +130,12 @@ class BlackJack (object):
     def process_dealer_hand (self):
         hand = self.dealer_hand
         message = "Dealer Hand: %s -- " % ', '.join([str(x) for x in hand.cards])
-        if not hand.soft_score or hand.soft_score == hand.combined_value:
-            message += "%d" % hand.combined_value
-            self.dealer_hand_value = hand.combined_value
-        else:
+        if hand.soft_score:
             message += "%d / %d" % (hand.combined_value, hand.soft_score)
             self.dealer_hand_value = hand.soft_score
+        else:
+            message += "%d" % hand.combined_value
+            self.dealer_hand_value = hand.combined_value
 
         print(message)
 
@@ -139,9 +157,9 @@ class BlackJack (object):
         print("Checking for dealer BlackJack")
 
         # dealer blackjack?
-        # UNIMPLEMENTED: Insurance bets
         dealer_blackjack = False
         if upcard.value == 11:          # Ace showing
+            # UNIMPLEMENTED: Insurance bets
             if downcard.value == 10:    # 10 under
                 dealer_blackjack = True
         elif upcard.value == 10:        # 10 showing
@@ -152,12 +170,12 @@ class BlackJack (object):
             for hand in self.player_hands:
                 if sum([x.value for x in hand.cards]) == 21:
                     # blackjack push
-                    message = "Dealer BlackJack: player pushed -- "
-                    hand.verdict = Hand.verdicts['PUSH']
+                    message = "Dealer BlackJack: Player %d pushed -- " % hand.player
+                    hand.setVerdict('PUSH')
                 else:
                     # player hand lost to dealer blackjack
-                    message = "Dealer BlackJack: player lost -- "
-                    hand.verdict = Hand.verdicts['LOSE']
+                    message = "Dealer BlackJack: Player %d lost -- " % hand.player
+                    hand.setVerdict('LOSE')
                 message += ', '.join([str(x) for x in hand.cards])
                 print(message)
         else:
@@ -172,8 +190,8 @@ class BlackJack (object):
         if sum([x.value for x in hand.cards]) == 21:
             # player blackjack
             print("Player BlackJack -- Win")
-            hand.verdict = Hand.verdicts['WIN']
-            next
+            hand.setVerdict('BLACKJACK')
+            return
             
         player_turn_in_progress = True
         while player_turn_in_progress:
@@ -192,6 +210,7 @@ class BlackJack (object):
                 # create a second hand and move one of the existing cards to it from the other hand
                 # stick it on the front of the hands list
                 split_hand = Hand(player=hand.player)
+                self.bankrolls[hand.player].split(hand, split_hand)
                 split_hand.addCard(hand.cards.pop())
                 self.player_hands = [split_hand] + self.player_hands
 
@@ -208,16 +227,17 @@ class BlackJack (object):
             elif player_action == Hand.action['DOUBLE']:
                 # Doubles are a single hit with a forced-stand after the hit
                 # give it one card, check it for a bust, and end the turn
+                self.bankrolls[hand.player].double(hand)
                 card = self.shoe.nextCard()
                 message = "Double: " + str(card) + " -- "
                 hand.addCard(card)
                 if hand.combined_value > 21:
                     message = "Player Busted: Lose -- "
-                hand.verdict = Hand.verdicts['LOSE']
+                    hand.setVerdict('LOSE')
                 player_turn_in_progress = False
             elif player_action == Hand.action['BUSTED']:
                 message = "Player Busted: Lose -- "
-                hand.verdict = Hand.verdicts['LOSE']
+                hand.setVerdict('LOSE')
                 player_turn_in_progress = False
             else:
                 raise("Unimplemented player action: " + str(player_action))
@@ -232,4 +252,4 @@ class BlackJack (object):
 
 
 if (__name__ == '__main__'):
-    print(BlackJack(num_players=10, num_decks=6).play())
+    print(BlackJack(num_players=10, num_decks=8).play())

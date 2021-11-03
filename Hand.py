@@ -16,7 +16,8 @@ class Hand (object):
     verdicts = {
         'WIN': 1,
         'LOSE': 2,
-        'PUSH': 4
+        'PUSH': 4,
+        'BLACKJACK': 8
     }
 
 
@@ -25,6 +26,7 @@ class Hand (object):
         self.initial_eval = True
         self.player = player
         self.verdict = None
+        self.bet = 0
         return
 
 
@@ -47,7 +49,6 @@ class Hand (object):
             else:
                 self.soft_score = self.combined_value
         
-
 
     def evaluate(self, upcard):
         if self.initial_eval:
@@ -108,7 +109,6 @@ class Hand (object):
             if ace_offcard:
                 return(self.evaluate_soft_hand(ace_offcard.value, upcard.value))
 
-
             # No splits or Aces
             # check for double down opportunities
             if self.combined_value == 9:
@@ -132,7 +132,6 @@ class Hand (object):
             
             # end of initial eval
             # no more splits or double downs after initial cards are dealt
-
 
         # busted?
         if self.combined_value > 21:
@@ -198,6 +197,11 @@ class Hand (object):
             return self.action['STAND']
 
 
+    def setVerdict (self, verdict):
+        verdict = verdict.upper()
+        assert(verdict in self.verdicts.keys())
+        assert(self.verdict is None)
+        self.verdict = Hand.verdicts[verdict]
 
 
 
