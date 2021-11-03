@@ -9,13 +9,22 @@ class Hand (object):
         'STAND': 2,
         'SPLIT': 4,
         'DOUBLE': 8,
-        'SURRENDER': 16
+        'SURRENDER': 16,
+        'BUSTED': 32
+    }
+
+    verdicts = {
+        'WIN': 1,
+        'LOSE': 2,
+        'PUSH': 4
     }
 
 
-    def __init__(self):
+    def __init__(self, player=None):
         self.cards = []
         self.initial_eval = True
+        self.player = player
+        self.verdict = None
         return
 
 
@@ -124,6 +133,10 @@ class Hand (object):
             # end of initial eval
             # no more splits or double downs after initial cards are dealt
 
+
+        # busted?
+        if self.combined_value > 21:
+            return(self.action['BUSTED'])
         
         # Soft hand?
         ace_count = len([x for x in self.cards if x.value == 11])
