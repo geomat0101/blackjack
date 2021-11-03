@@ -14,6 +14,7 @@ class Bankroll (object):
     def bet (self, hand):
         wager = self.getNextBet()
         hand.bet = wager
+        assert(self.cash > wager)
         self.cash -= wager
 
 
@@ -23,6 +24,7 @@ class Bankroll (object):
 
 
     def double (self, hand):
+        assert(self.cash > hand.bet)
         self.cash -= hand.bet
         hand.bet *= 2
 
@@ -42,6 +44,7 @@ class Bankroll (object):
 
 
     def split (self, orig_hand, new_hand):
+        assert(self.cash > orig_hand.bet)
         self.cash -= orig_hand.bet
         new_hand.bet = orig_hand.bet
 

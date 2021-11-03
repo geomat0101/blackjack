@@ -115,16 +115,20 @@ class BlackJack (object):
 
     def play (self):
         # main game loop
-        self.deal()
-        self.process_player_hands()
+        game_round = 1
+        while True:
+            print("*** Round %d ***" % game_round)
+            self.deal()
+            self.process_player_hands()
 
-        self.dealer_hand_value = 0
-        self.dealer_busted = False
-        while self.dealer_hand_value < 17:
-            self.process_dealer_hand()
-        print(str(self.shoe))
-        
-        self.compare_hands()
+            self.dealer_hand_value = 0
+            self.dealer_busted = False
+            while self.dealer_hand_value < 17:
+                self.process_dealer_hand()
+            print(str(self.shoe))
+            
+            self.compare_hands()
+            game_round += 1
 
 
     def process_dealer_hand (self):
