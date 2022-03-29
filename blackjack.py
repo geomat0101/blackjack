@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from Bankroll import Bankroll
+from Bankroll import MDGBankroll as Bankroll
 from Hand import Hand
 from Shoe import Shoe
 
