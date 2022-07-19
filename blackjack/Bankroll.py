@@ -41,7 +41,7 @@ class Bankroll ():
 
 
     def getNextBet (self):
-        return 25
+        return 100
 
 
     def lose (self, hand):
@@ -63,6 +63,7 @@ class Bankroll ():
     def win (self, hand):
         # pays final bet back plus 1:1
         self.adjust_cash(hand.bet * 2)
+        self.won_last_hand = True
 
 
 class MDGBankroll (Bankroll):
