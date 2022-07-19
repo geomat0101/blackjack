@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from Card import Card
+from blackjack.Card import Card
 
 class Hand ():
 
