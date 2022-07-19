@@ -1,17 +1,18 @@
 #!/usr/bin/env python
 
+from blackjack.Card import Card
+from queue import deque
 import random
-from Card import Card
 
-class SingleDeck (object):
+class SingleDeck ():
 
     def __init__(self):
         self.shuffled = False
-        self.discards = []
+        self.discards = deque()
         self.cards = self.build_deck()
 
     def build_deck (self):
-        deck = []
+        deck = deque()
         for suit in Card.suits:
             for ranknum in range(1, 14):
                 deck.append(Card(suit, ranknum))
@@ -32,7 +33,7 @@ class SingleDeck (object):
         if not self.cards:
             return
 
-        c = self.cards.pop()
+        c = self.cards.popleft()
         self.discards.append(c)
         return(c)
 
