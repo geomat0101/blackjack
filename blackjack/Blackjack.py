@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-from Bankroll import MDGBankroll as Bankroll
-from Hand import Hand
-from Shoe import Shoe
+from blackjack.Bankroll import MDGBankroll as Bankroll
+from blackjack.Hand import Hand
+from blackjack.Shoe import Shoe
 
 
 # ref: https://healy.econ.ohio-state.edu/blackjack/table/dealing.html
