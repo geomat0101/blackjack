@@ -54,7 +54,7 @@ class BlackJack (object):
             else:
                 hand.setVerdict('LOSE')
 
-        v_map = {v: k for k, v in Hand.verdicts.iteritems()}
+        v_map = {v: k for k, v in Hand.verdicts.items()}
 
         for hand in self.player_hands:
             if hand.verdict == Hand.verdicts['BLACKJACK']:
