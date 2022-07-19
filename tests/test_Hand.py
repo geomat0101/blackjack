@@ -1,6 +1,5 @@
 from blackjack.Card import Card
 from blackjack.Hand import Hand
-# from blackjack.Shoe import Shoe
 import pytest
 
 
