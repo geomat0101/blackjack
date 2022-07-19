@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-class Bankroll (object):
+class Bankroll ():
 
     def __init__(self, cash=1000):
         self.cash = cash

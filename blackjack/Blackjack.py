@@ -7,7 +7,7 @@ from Shoe import Shoe
 
 # ref: https://healy.econ.ohio-state.edu/blackjack/table/dealing.html
 
-class BlackJack (object):
+class BlackJack ():
 
     def __init__(self, num_players=1, num_decks=1):
         self.num_players = num_players

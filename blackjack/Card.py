@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-class Card (object):
+class Card ():
 
     ranks = [   '',
                 'Ace',

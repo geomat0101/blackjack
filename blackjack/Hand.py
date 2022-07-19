@@ -2,7 +2,7 @@
 
 from Card import Card
 
-class Hand (object):
+class Hand ():
 
     action = {
         'HIT': 1,
