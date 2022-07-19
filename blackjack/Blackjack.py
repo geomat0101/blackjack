@@ -54,8 +54,6 @@ class BlackJack ():
             else:
                 hand.setVerdict('LOSE')
 
-        v_map = {v: k for k, v in Hand.verdicts.items()}
-
         for hand in self.player_hands:
             if hand.verdict == Hand.verdicts['BLACKJACK']:
                 self.bankrolls[hand.player].blackjack(hand)
@@ -66,7 +64,7 @@ class BlackJack ():
             else:
                 self.bankrolls[hand.player].lose(hand)
 
-            message = "%9s - Player %d: %s -- %d -- %s" % (v_map[hand.verdict], hand.player, ', '.join([str(x) for x in hand.cards]), hand.final_value, self.bankrolls[hand.player])
+            message = "%9s - Player %d: %s -- %d -- %s" % (hand.v_map[hand.verdict], hand.player, ', '.join([str(x) for x in hand.cards]), hand.final_value, self.bankrolls[hand.player])
             print(message)
 
 
