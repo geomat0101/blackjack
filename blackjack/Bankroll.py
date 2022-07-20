@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-class Bankroll (object):
+class Bankroll ():
 
     def __init__(self, cash=1000):
         self.cash = cash
@@ -16,7 +16,7 @@ class Bankroll (object):
 
     def adjust_cash (self, amount):
         assert((self.cash + amount) > 0)
-        self.cash += amount
+        self.cash += int(amount)
         if self.cash < self.low_cash:
             self.low_cash = self.cash
         if self.cash > self.high_cash:
@@ -41,7 +41,7 @@ class Bankroll (object):
 
 
     def getNextBet (self):
-        return 25
+        return 100
 
 
     def lose (self, hand):
@@ -63,6 +63,7 @@ class Bankroll (object):
     def win (self, hand):
         # pays final bet back plus 1:1
         self.adjust_cash(hand.bet * 2)
+        self.won_last_hand = True
 
 
 class MDGBankroll (Bankroll):

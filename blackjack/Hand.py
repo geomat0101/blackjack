@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-from Card import Card
+from blackjack.Card import Card
 
-class Hand (object):
+class Hand ():
 
     action = {
         'HIT': 1,
@@ -27,6 +27,8 @@ class Hand (object):
         self.player = player
         self.verdict = None
         self.bet = 0
+        self.a_map = {v: k for k,v in self.action.items()}
+        self.v_map = {v: k for k,v in self.verdicts.items()}
         return
 
 
@@ -57,46 +59,7 @@ class Hand (object):
             card2 = self.cards[1]
             # splits?
             if card1.value == card2.value:
-                # potential split
-                if card1.value in [8, 11]:
-                    # always split pairs of Aces and Eights
-                    return(self.action['SPLIT'])
-                elif card1.value == 10:
-                    # always stand on Tens
-                    return(self.action['STAND'])
-                elif card1.value == 9:
-                    # stand if dealer is showing 7, 10, or A; else split
-                    if upcard.value in [7,10,11]:
-                        return(self.action['STAND'])
-                    else:
-                        return(self.action['SPLIT'])
-                elif card1.value == 7:
-                    # split if dealer is showing 7 or lower; else hit
-                    if upcard.value <= 7:
-                        return(self.action['SPLIT'])
-                    else:
-                        return(self.action['HIT'])
-                elif card1.value == 6:
-                    # split if dealer is showing 3-6; else hit
-                    if upcard.value in [3, 4, 5, 6]:
-                        return(self.action['SPLIT'])
-                    else:
-                        return(self.action['HIT'])
-                elif card1.value == 5:
-                    # double if dealer is showing < 10; else hit
-                    if upcard.value < 10:
-                        return(self.action['DOUBLE'])
-                    else:
-                        return(self.action['HIT'])
-                elif card1.value == 4:
-                    # always hit 4s
-                    return(self.action['HIT'])
-                else:
-                    # split if dealer is showing 4-7; else hit
-                    if upcard.value in [4,5,6,7]:
-                        return(self.action['SPLIT'])
-                    else:
-                        return(self.action['HIT'])
+                return(self.evaluate_split(card1.value, upcard.value))
 
             # not a split
             # got any aces?
@@ -163,7 +126,50 @@ class Hand (object):
                 return(self.action['HIT'])
         else:
             return(self.action['HIT'])
-            
+
+
+    def evaluate_split (self, split_value, upcard_value):
+        # potential split
+        if split_value in [8, 11]:
+            # always split pairs of Aces and Eights
+            return(self.action['SPLIT'])
+        elif split_value == 10:
+            # always stand on Tens
+            return(self.action['STAND'])
+        elif split_value == 9:
+            # stand if dealer is showing 7, 10, or A; else split
+            if upcard_value in [7,10,11]:
+                return(self.action['STAND'])
+            else:
+                return(self.action['SPLIT'])
+        elif split_value == 7:
+            # split if dealer is showing 7 or lower; else hit
+            if upcard_value <= 7:
+                return(self.action['SPLIT'])
+            else:
+                return(self.action['HIT'])
+        elif split_value == 6:
+            # split if dealer is showing 3-6; else hit
+            if upcard_value in [3, 4, 5, 6]:
+                return(self.action['SPLIT'])
+            else:
+                return(self.action['HIT'])
+        elif split_value == 5:
+            # double if dealer is showing < 10; else hit
+            if upcard_value < 10:
+                return(self.action['DOUBLE'])
+            else:
+                return(self.action['HIT'])
+        elif split_value == 4:
+            # always hit 4s
+            return(self.action['HIT'])
+        else:
+            # split if dealer is showing 4-7; else hit
+            if upcard_value in [4,5,6,7]:
+                return(self.action['SPLIT'])
+            else:
+                return(self.action['HIT'])
+
 
     def evaluate_soft_hand (self, offcard_value, upcard_value):
         if offcard_value in [2,3]:
@@ -202,12 +208,8 @@ class Hand (object):
         assert(verdict in self.verdicts.keys())
         assert(self.verdict is None)
         self.verdict = Hand.verdicts[verdict]
+    
 
-
-
-
-
-
-
-
-
+    def getVerdict (self):
+        if self.verdict:
+            return(self.v_map[self.verdict])

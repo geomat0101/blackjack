@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from SingleDeck import SingleDeck
+from blackjack.SingleDeck import SingleDeck
 
 class Shoe (SingleDeck):
 
