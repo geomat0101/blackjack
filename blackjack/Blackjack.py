@@ -184,7 +184,41 @@ class BlackJack ():
             # process player hands
             for hand in self.player_hands:
                 self.process_single_hand(hand, upcard)
-            
+    
+
+    def hit (self, hand):
+        card = self.shoe.nextCard()
+        hand.addCard(card)
+
+
+    def split (self, hand, upcard):
+        # create a second hand and move one of the existing cards to it from the other hand
+        # stick it on the front of the hands list
+        split_hand = Hand(player=hand.player)
+        self.bankrolls[hand.player].split(hand, split_hand)
+        split_hand.addCard(hand.cards.pop())
+        self.player_hands = [split_hand] + self.player_hands
+
+        # deal the second card on it and process it immediately via recursion
+        split_hand.addCard(self.shoe.nextCard())
+        self.process_single_hand(split_hand, upcard)
+
+        # deal a second card on the original hand and let it get processed again via
+        # iterating in this while loop.  Reset initial_eval so it gets the first-time
+        # eval treatment again in case we happen to deal out a split-after-split scenario
+        hand.addCard(self.shoe.nextCard())
+        hand.initial_eval = True
+        print("Next split hand (player %d): %s" % (hand.player, ', '.join([str(x) for x in hand.cards])))
+
+
+    def double (self, hand):
+        # Doubles are a single hit with a forced-stand after the hit
+        # give it one card, check it for a bust, and end the turn
+        self.bankrolls[hand.player].double(hand)
+        card = self.shoe.nextCard()
+        hand.addCard(card)
+
+
 
     def process_single_hand (self, hand, upcard):
         print("Processing hand for player %d: %s" % (hand.player, ', '.join([str(x) for x in hand.cards])))
@@ -200,39 +234,17 @@ class BlackJack ():
             player_action = hand.evaluate(upcard)
             message = ""
             if player_action == Hand.action['HIT']:
-                card = self.shoe.nextCard()
-                message = "Hit: " + str(card) + " -- "
-                hand.addCard(card)
+                self.hit(hand)
+                message = "Hit: " + str(hand.cards[-1]) + " -- "
             elif player_action == Hand.action['STAND']:
                 message = "Stand -- "
                 player_turn_in_progress = False
             elif player_action == Hand.action['SPLIT']:
-                print("Player Splits the hand")
-                
-                # create a second hand and move one of the existing cards to it from the other hand
-                # stick it on the front of the hands list
-                split_hand = Hand(player=hand.player)
-                self.bankrolls[hand.player].split(hand, split_hand)
-                split_hand.addCard(hand.cards.pop())
-                self.player_hands = [split_hand] + self.player_hands
-
-                # deal the second card on it and process it immediately via recursion
-                split_hand.addCard(self.shoe.nextCard())
-                self.process_single_hand(split_hand, upcard)
-
-                # deal a second card on the original hand and let it get processed again via
-                # iterating in this while loop.  Reset initial_eval so it gets the first-time
-                # eval treatment again in case we happen to deal out a split-after-split scenario
-                hand.addCard(self.shoe.nextCard())
-                hand.initial_eval = True
-                print("Next split hand (player %d): %s" % (hand.player, ', '.join([str(x) for x in hand.cards])))
+                print("Player Splits the hand")                
+                self.split(hand, upcard)
             elif player_action == Hand.action['DOUBLE']:
-                # Doubles are a single hit with a forced-stand after the hit
-                # give it one card, check it for a bust, and end the turn
-                self.bankrolls[hand.player].double(hand)
-                card = self.shoe.nextCard()
-                message = "Double: " + str(card) + " -- "
-                hand.addCard(card)
+                self.double(hand)
+                message = "Double: " + str(hand.cards[-1]) + " -- "
                 if hand.combined_value > 21:
                     message = "Player Busted: Lose -- "
                     hand.setVerdict('LOSE')
