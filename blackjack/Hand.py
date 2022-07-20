@@ -208,12 +208,8 @@ class Hand ():
         assert(verdict in self.verdicts.keys())
         assert(self.verdict is None)
         self.verdict = Hand.verdicts[verdict]
+    
 
-
-
-
-
-
-
-
-
+    def getVerdict (self):
+        if self.verdict:
+            return(self.v_map[self.verdict])
