@@ -12,6 +12,7 @@ class BlackJack ():
     def __init__(self, num_players=1, num_decks=1):
         self.num_players = num_players
         self.num_decks = num_decks
+        self.interactive = set()
 
         self.shoe = self.getShoe()
         self.player_hands = []
@@ -23,6 +24,7 @@ class BlackJack ():
         self.bankrolls = []
         for player in range(self.num_players):
             self.bankrolls.append(Bankroll())
+            self.interactive.add(player)
             
         # see self.play() from here
         return
@@ -74,6 +76,39 @@ class BlackJack ():
             print(message)
 
 
+    def print_help_bet (self):
+        print('''
+    ?:  Print this message
+    A:  Automate Decisions
+    ### 0 < x <= bank:  Place a bet
+
+    [ENTER] alone will place the suggested bet in [brackets]
+''')
+    
+
+    def prompt_bet (self, hand, bankroll):
+        valid_input = False
+        wager = bankroll.getNextBet(hand)
+        while not valid_input:
+            print("\n'?' for Help\nPlayer %d -- Bank: $%0.2f" % (hand.player, bankroll.cash))
+            user_input = input("Player Bet [%d]: " % wager).strip()
+            if not user_input:
+                return(wager)
+            try:
+                user_input = int(user_input)
+                if user_input > 0 and user_input <= bankroll.cash:
+                    return(user_input)
+            except:
+                user_input = user_input.upper()
+                if user_input[0] == '?':
+                    self.print_help_bet()
+                elif user_input[0] == 'A':
+                    self.interactive.remove(hand.player)
+                    return(wager)
+                else:
+                    print("ERR: You did it wrong.  Enter a valid bet (0 < x <= bank)")
+
+
     def deal (self):
         if len(self.shoe.discards) > (3 * len(self.shoe.cards)):
             # passed 75% shoe penetration; time to reshuffle
@@ -84,8 +119,12 @@ class BlackJack ():
         self.player_hands = []  
         for player in range(self.num_players):
             hand = Hand(player=player)
-            self.bankrolls[player].bet(hand)
+            wager = None
+            if hand.player in self.interactive:
+                wager = self.prompt_bet(hand, self.bankrolls[player])
+            self.bankrolls[player].bet(hand, wager=wager)
             self.player_hands.append(hand)
+            print("Player %d: Bet $%0.2f" % (hand.player, hand.bet))
         
         self.dealer_hand = Hand()
 
@@ -193,6 +232,13 @@ class BlackJack ():
                 self.process_single_hand(hand, upcard)
     
 
+    def hand_value_suffix (self, hand):
+            if hand.soft_score and hand.soft_score > hand.combined_value:
+                return("%d / %d" % (hand.combined_value, hand.soft_score))
+            else:
+                return(str(hand.combined_value))
+
+
     def hit (self, *args, **kwargs):
         hand = args[0]
         hand.addCard(self.shoe.nextCard())
@@ -219,7 +265,7 @@ class BlackJack ():
         # eval treatment again in case we happen to deal out a split-after-split scenario
         hand.addCard(self.shoe.nextCard())
         hand.initial_eval = True
-        print("Next split hand (player %d): %s" % (hand.player, ', '.join([str(x) for x in hand.cards])))
+        print("Next split hand (player %d): %s -- %s" % (hand.player, ', '.join([str(x) for x in hand.cards]), self.hand_value_suffix(hand)))
 
 
     def double (self, *args, **kwargs):
@@ -229,7 +275,64 @@ class BlackJack ():
         self.bankrolls[hand.player].double(hand)
         card = self.shoe.nextCard()
         hand.addCard(card)
+    
 
+    def print_help_actions (self):
+        print('''
+    ?:  Print this message
+    H:  Hit
+    S:  Stand
+    D:  Double
+    /:  Split
+    A:  Automate Decisions
+    *:  Display Recommendation
+
+    [ENTER] alone will execute the "correct" action
+''')
+
+
+    def prompt_action(self, hand, upcard, suggestion):
+        act_name = suggestion
+        valid_input = False
+        while not valid_input:
+            print("%s -- %s" % (', '.join([str(x) for x in hand.cards]), self.hand_value_suffix(hand)))
+            print("Dealer Showing: %s" % (str(upcard)))
+            print("[?HSD/A*]")
+            user_input = input('? ').strip().upper()
+            if not user_input:
+                return(act_name)
+
+            if user_input[0] == '?':
+                self.print_help_actions()
+            elif user_input[0] == 'H':
+                act_name = 'HIT'
+                valid_input = True
+            elif user_input[0] == 'S':
+                act_name = 'STAND'
+                valid_input = True
+            elif user_input[0] == 'D':
+                if len(hand.cards) > 2:
+                    print("ERR: Can only DOUBLE on first hand action")
+                else:
+                    act_name = 'DOUBLE'
+                    valid_input = True
+            elif user_input[0] == '/':
+                if len(hand.cards) > 2:
+                    print("ERR: Can only SPLIT on first hand action")
+                elif hand.cards[0].ranknum != hand.cards[1].ranknum:
+                    print("ERR: Can only SPLIT cards with the same value")
+                else:
+                    act_name = 'SPLIT'
+                    valid_input = True
+            elif user_input[0] == 'A':
+                print("INFO: Player %d decisions are now automated" % hand.player)
+                self.interactive.remove(hand.player)
+                valid_input = True
+            elif user_input[0] == '*':
+                print("You should %s\n" % act_name)
+
+        return(act_name)
+    
 
     def process_next_turn_iteration (self, hand, upcard):
         # handler method, continue_turn value
@@ -242,6 +345,8 @@ class BlackJack ():
         }
 
         act_name = hand.a_map[hand.evaluate(upcard)]
+        if hand.player in self.interactive and act_name != 'BUSTED':
+            act_name = self.prompt_action(hand, upcard, act_name)
         (handler, continue_turn) = action_handler[act_name]
 
         if handler:
@@ -266,17 +371,16 @@ class BlackJack ():
             raise("Unimplemented player action: " + str(act_name))
 
         if message:
-            if hand.soft_score:
-                message += "%d / %d" % (hand.combined_value, hand.soft_score)
-            else:
-                message += str(hand.combined_value)
+            message += self.hand_value_suffix(hand)
             print(message)
         
         return(continue_turn)
 
 
     def process_single_hand (self, hand, upcard):
-        print("Processing hand for player %d: %s" % (hand.player, ', '.join([str(x) for x in hand.cards])))
+        message = "\n\nProcessing hand for player %d: %s -- " % (hand.player, ', '.join([str(x) for x in hand.cards]))
+        message += self.hand_value_suffix(hand)
+        print(message)
         # blackjack?
         if sum([x.value for x in hand.cards]) == 21:
             # player blackjack

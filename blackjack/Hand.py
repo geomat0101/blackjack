@@ -33,7 +33,7 @@ class Hand ():
 
 
     def __str__(self):
-        return(self.cards)
+        return(' '.join(str(_) for _ in self.cards))
 
 
     def addCard(self, card):

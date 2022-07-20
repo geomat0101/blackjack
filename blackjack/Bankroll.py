@@ -11,7 +11,7 @@ class Bankroll ():
 
 
     def __str__(self):
-        return("Cash: %0.2f - %0.2f - %0.2f" % (self.low_cash, self.cash, self.high_cash))
+        return("Cash: %0.2f - %0.2f -- $%0.2f" % (self.low_cash, self.high_cash, self.cash))
 
 
     def adjust_cash (self, amount):
@@ -23,8 +23,9 @@ class Bankroll ():
             self.high_cash = self.cash
 
 
-    def bet (self, hand):
-        wager = self.getNextBet()
+    def bet (self, hand, wager=None):
+        if not wager:
+            wager = self.getNextBet(hand)
         hand.bet = wager
         self.adjust_cash(-1 * wager)
 
@@ -40,7 +41,7 @@ class Bankroll ():
         hand.bet *= 2
 
 
-    def getNextBet (self):
+    def getNextBet (self, hand):
         return 100
 
 
@@ -76,7 +77,7 @@ class MDGBankroll (Bankroll):
         return
 
 
-    def getNextBet (self):
+    def getNextBet (self, hand):
         if not self.mark:
             if self.won_last_hand:
                 self.mark = True
