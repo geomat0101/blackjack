@@ -26,44 +26,50 @@ class BlackJack ():
             
         # see self.play() from here
         return
+
+
+    def compare_single_hand (self, hand):
+        hand_value = 0
+        if hand.soft_score:
+            hand_value = hand.soft_score
+        else:
+            hand_value = hand.combined_value
+        
+        hand.final_value = hand_value
+        
+        if hand.verdict:
+            return
+
+        if self.dealer_busted:
+            if hand_value <= 21:
+                hand.setVerdict('WIN')
+        elif hand_value > 21:
+            hand.setVerdict('LOSE')
+        elif hand_value > self.dealer_hand_value:
+            hand.setVerdict('WIN')
+        elif hand_value == self.dealer_hand_value:
+            hand.setVerdict('PUSH')
+        else:
+            hand.setVerdict('LOSE')
     
+
+    def update_bankroll (self, hand, bankroll):
+        verdict_handlers = {
+            'BLACKJACK':    bankroll.blackjack,
+            'WIN':          bankroll.win,
+            'PUSH':         bankroll.push,
+            'LOSE':         bankroll.lose
+        }
+        verdict_handlers[hand.getVerdict()](hand)
+
 
     def compare_hands (self):
         # compare player hands vs dealer and pay out winnings
         for hand in self.player_hands:
-            hand_value = 0
-            if hand.soft_score:
-                hand_value = hand.soft_score
-            else:
-                hand_value = hand.combined_value
-            
-            hand.final_value = hand_value
-            
-            if hand.verdict:
-                continue
-    
-            if self.dealer_busted:
-                if hand_value <= 21:
-                    hand.setVerdict('WIN')
-            elif hand_value > 21:
-                hand.setVerdict('LOSE')
-            elif hand_value > self.dealer_hand_value:
-                hand.setVerdict('WIN')
-            elif hand_value == self.dealer_hand_value:
-                hand.setVerdict('PUSH')
-            else:
-                hand.setVerdict('LOSE')
-
+            self.compare_single_hand(hand)
+        
         for hand in self.player_hands:
-            if hand.verdict == Hand.verdicts['BLACKJACK']:
-                self.bankrolls[hand.player].blackjack(hand)
-            elif hand.verdict == Hand.verdicts['WIN']:
-                self.bankrolls[hand.player].win(hand)
-            elif hand.verdict == Hand.verdicts['PUSH']:
-                self.bankrolls[hand.player].push(hand)
-            else:
-                self.bankrolls[hand.player].lose(hand)
-
+            self.update_bankroll(hand, self.bankrolls[hand.player])
             message = "%9s - Player %d: %s -- %d -- %s" % (hand.v_map[hand.verdict], hand.player, ', '.join([str(x) for x in hand.cards]), hand.final_value, self.bankrolls[hand.player])
             print(message)
 
@@ -156,18 +162,19 @@ class BlackJack ():
         downcard = self.dealer_hand.cards[0]
         upcard = self.dealer_hand.cards[1]
 
-        print("Checking for dealer BlackJack")
-
         # dealer blackjack?
         dealer_blackjack = False
-        if upcard.value == 11:          # Ace showing
-            # UNIMPLEMENTED: Insurance bets
-            if downcard.value == 10:    # 10 under
-                dealer_blackjack = True
-        elif upcard.value == 10:        # 10 showing
-            if downcard.value == 11:    # Ace under
-                dealer_blackjack = True
-        
+        if upcard.value >= 10:
+            print("Checking for dealer BlackJack")
+
+            if upcard.value == 11:          # Ace showing
+                # UNIMPLEMENTED: Insurance bets
+                if downcard.value == 10:    # 10 under
+                    dealer_blackjack = True
+            elif upcard.value == 10:        # 10 showing
+                if downcard.value == 11:    # Ace under
+                    dealer_blackjack = True
+            
         if dealer_blackjack:
             for hand in self.player_hands:
                 if sum([x.value for x in hand.cards]) == 21:
@@ -186,12 +193,16 @@ class BlackJack ():
                 self.process_single_hand(hand, upcard)
     
 
-    def hit (self, hand):
-        card = self.shoe.nextCard()
-        hand.addCard(card)
+    def hit (self, *args, **kwargs):
+        hand = args[0]
+        hand.addCard(self.shoe.nextCard())
 
 
-    def split (self, hand, upcard):
+    def split (self, *args, **kwargs):
+        hand = args[0]
+        upcard = args[1]
+        print("Player Splits the hand")                
+
         # create a second hand and move one of the existing cards to it from the other hand
         # stick it on the front of the hands list
         split_hand = Hand(player=hand.player)
@@ -211,13 +222,57 @@ class BlackJack ():
         print("Next split hand (player %d): %s" % (hand.player, ', '.join([str(x) for x in hand.cards])))
 
 
-    def double (self, hand):
+    def double (self, *args, **kwargs):
         # Doubles are a single hit with a forced-stand after the hit
         # give it one card, check it for a bust, and end the turn
+        hand = args[0]
         self.bankrolls[hand.player].double(hand)
         card = self.shoe.nextCard()
         hand.addCard(card)
 
+
+    def process_next_turn_iteration (self, hand, upcard):
+        # handler method, continue_turn value
+        action_handler = {
+            'HIT':      (self.hit, True),
+            'STAND':    (None, False),
+            'SPLIT':    (self.split, True),
+            'DOUBLE':   (self.double, False),
+            'BUSTED':   (None, False)
+        }
+
+        act_name = hand.a_map[hand.evaluate(upcard)]
+        (handler, continue_turn) = action_handler[act_name]
+
+        if handler:
+            handler(hand, upcard)
+
+        message = ""
+        if act_name == 'HIT':
+            message = "Hit: " + str(hand.cards[-1]) + " -- "
+        elif act_name == 'STAND':
+            message = "Stand -- "
+        elif act_name == 'SPLIT':
+            pass
+        elif act_name == 'DOUBLE':
+            message = "Double: " + str(hand.cards[-1]) + " -- "
+            if hand.combined_value > 21:
+                message = "Player Busted: Lose -- "
+                hand.setVerdict('LOSE')
+        elif act_name == 'BUSTED':
+            message = "Player Busted: Lose -- "
+            hand.setVerdict('LOSE')
+        else:
+            raise("Unimplemented player action: " + str(act_name))
+
+        if message:
+            if hand.soft_score:
+                message += "%d / %d" % (hand.combined_value, hand.soft_score)
+            else:
+                message += str(hand.combined_value)
+            print(message)
+        
+        return(continue_turn)
 
 
     def process_single_hand (self, hand, upcard):
@@ -229,39 +284,8 @@ class BlackJack ():
             hand.setVerdict('BLACKJACK')
             return
             
-        player_turn_in_progress = True
-        while player_turn_in_progress:
-            player_action = hand.evaluate(upcard)
-            message = ""
-            if player_action == Hand.action['HIT']:
-                self.hit(hand)
-                message = "Hit: " + str(hand.cards[-1]) + " -- "
-            elif player_action == Hand.action['STAND']:
-                message = "Stand -- "
-                player_turn_in_progress = False
-            elif player_action == Hand.action['SPLIT']:
-                print("Player Splits the hand")                
-                self.split(hand, upcard)
-            elif player_action == Hand.action['DOUBLE']:
-                self.double(hand)
-                message = "Double: " + str(hand.cards[-1]) + " -- "
-                if hand.combined_value > 21:
-                    message = "Player Busted: Lose -- "
-                    hand.setVerdict('LOSE')
-                player_turn_in_progress = False
-            elif player_action == Hand.action['BUSTED']:
-                message = "Player Busted: Lose -- "
-                hand.setVerdict('LOSE')
-                player_turn_in_progress = False
-            else:
-                raise("Unimplemented player action: " + str(player_action))
-
-            if message:
-                if hand.soft_score:
-                    message += "%d / %d" % (hand.combined_value, hand.soft_score)
-                else:
-                    message += str(hand.combined_value)
-                print(message)
+        while self.process_next_turn_iteration(hand, upcard):
+            pass
 
 
 

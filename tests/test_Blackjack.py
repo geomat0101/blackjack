@@ -1,3 +1,4 @@
+from blackjack.Bankroll import Bankroll
 from blackjack.Blackjack import BlackJack
 from blackjack.Card import Card
 from blackjack.Hand import Hand
@@ -10,8 +11,10 @@ def aceFactory (*args, **kwargs):
     return(Card('spades',1))
 
 
-def calledIt (*args, **kwargs):
-    raise("Called It")
+def calledIt (self, *args, **kwargs):
+    if 'pytest' not in dir(self):
+        self.pytest = {}
+    self.pytest['calledIt'] = True
 
 
 # tests
@@ -86,15 +89,63 @@ def test_Blackjack_split (monkeypatch):
     upcard = Card('spades',1)
     monkeypatch.setattr(Shoe, "nextCard", aceFactory) # splitting 10s and drawing Aces
     assert(b.shoe.nextCard().ranknum == 1)
+    monkeypatch.setattr(Bankroll, "split", calledIt)
     b.split(hand,upcard)
+    assert(b.bankrolls[hand.player].pytest['calledIt'])
     assert(len(b.player_hands) == 2)
     assert(b.player_hands[-1] == hand)
     assert(b.player_hands[-1].initial_eval)
     assert(b.player_hands[0].getVerdict() == 'BLACKJACK')
 
 
-@pytest.mark.xfail
-def test_Blackjack_double ():
+def test_Blackjack_double (monkeypatch):
     b = BlackJack()
     hand = Hand(player=0)
-    assert(False) # unfinished
+    monkeypatch.setattr(Bankroll, "double", calledIt)
+    b.double(hand)
+    assert(b.bankrolls[hand.player].pytest['calledIt'])
+
+
+@pytest.mark.parametrize("card1,card2,card3,exp_dhv",
+        [
+            (Card('spades',1),Card('spades',9),None,20),
+            (Card('spades',10),Card('spades',10),None,20),
+            (Card('spades',10),Card('spades',6),None,16),
+            (Card('spades',10),Card('spades',10),Card('spades',10),30)
+        ])
+def test_Blackjack_process_dealer_hand (monkeypatch, card1, card2, card3, exp_dhv):
+    hand = Hand()
+    hand.addCard(card1)
+    hand.addCard(card2)
+    if card3:
+        hand.addCard(card3)
+    b = BlackJack()
+    b.dealer_hand = hand
+    b.process_dealer_hand()
+    assert(b.dealer_hand_value == exp_dhv)
+    if exp_dhv < 17:
+        assert(len(hand.cards) == 3)
+    if exp_dhv > 21:
+        assert(b.dealer_busted)
+
+
+@pytest.mark.parametrize("card1,card2,card3,dealer_busted,dhv,exp_verdict",
+        [
+            (Card('spades', 10), Card('spades', 10), None, True, 30, 'WIN'),
+            (Card('spades', 10), Card('spades', 10), Card('spades', 10), False, 20, 'LOSE'),
+            (Card('spades', 10), Card('spades', 10), None, False, 19, 'WIN'),
+            (Card('spades', 10), Card('spades', 10), None, False, 20, 'PUSH'),
+            (Card('spades', 10), Card('spades', 9), None, False, 20, 'LOSE')
+        ])
+def test_Blackjack_compare_single_hand (card1, card2, card3, dealer_busted, dhv, exp_verdict):
+    hand = Hand(player=0)
+    hand.addCard(card1)
+    hand.addCard(card2)
+    if card3:
+        hand.addCard(card3)
+    b = BlackJack()
+    b.dealer_busted = dealer_busted
+    b.dealer_hand_value = dhv
+    b.compare_single_hand(hand)
+    assert(hand.getVerdict() == exp_verdict)
+
