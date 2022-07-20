@@ -16,7 +16,7 @@ class Bankroll ():
 
     def adjust_cash (self, amount):
         assert((self.cash + amount) > 0)
-        self.cash += amount
+        self.cash += int(amount)
         if self.cash < self.low_cash:
             self.low_cash = self.cash
         if self.cash > self.high_cash:
