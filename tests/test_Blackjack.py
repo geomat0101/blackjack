@@ -35,6 +35,7 @@ def test_Blackjack_init ():
 
 def test_Blackjack_deal ():
     b = BlackJack()
+    b.interactive = []
     b.deal()
     assert(len(b.player_hands) == 1)
     assert(b.dealer_hand)
@@ -49,6 +50,7 @@ def test_Blackjack_deal ():
         ])
 def test_Blackjack_process_player_hands (downcard, upcard, card1, card2, exp_verdict):
     b = BlackJack()
+    b.interactive = []
     b.deal()
     b.dealer_hand.cards = [downcard, upcard]
     b.player_hands[0].cards = [card1,card2]

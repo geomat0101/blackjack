@@ -47,7 +47,7 @@ def test_Bankroll_double ():
 
 def test_Bankroll_getNextBet ():
     b = Bankroll()
-    assert(b.getNextBet() == 100)
+    assert(b.getNextBet(None) == 100)
 
 
 def test_Bankroll_lose ():
